@@ -3,20 +3,24 @@ set -e
 
 SETTINGS="$HOME/.claude/settings.json"
 
-echo "Loop Sentinel — uninstalling..."
+echo "Loop Sentinel: uninstalling..."
 
 rm -f "$HOME/.claude/hooks/loop-sentinel.py"
 
 python3 - <<'PYEOF'
-import json, os
+import json, os, sys
 
 settings_path = os.path.expanduser("~/.claude/settings.json")
 if not os.path.exists(settings_path):
     print("  settings.json not found, nothing to remove")
-    exit()
+    sys.exit(0)
 
-with open(settings_path) as f:
-    settings = json.load(f)
+try:
+    with open(settings_path) as f:
+        settings = json.load(f)
+except json.JSONDecodeError:
+    print(f"  WARNING: {settings_path} is not valid JSON. Skipping.")
+    sys.exit(0)
 
 pre = settings.get("hooks", {}).get("PreToolUse", [])
 filtered = [

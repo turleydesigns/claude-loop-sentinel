@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Loop Sentinel — PreToolUse hook for Claude Code
-Detects runaway agent loops before they burn money.
+Loop Sentinel: PreToolUse hook for Claude Code.
+Detects runaway agent loops before they burn tokens.
 
 Blocks when it sees:
   - Same tool + same args called 5x in 60s  (identical loop)
@@ -22,13 +22,13 @@ IDENTICAL_WINDOW = 60   # seconds
 THRASH_LIMIT     = 15   # same tool, any args
 THRASH_WINDOW    = 120  # seconds
 
-# Read-only tools are safe to skip — loops there don't burn money
+# Read-only tools are usually lower-risk than write/shell tools.
 SAFE_TOOLS = {"Read", "Glob", "Grep", "LS", "TodoRead", "TaskGet", "TaskList"}
 
 
 def fingerprint(tool_input: dict) -> str:
     if "command" in tool_input:
-        content = str(tool_input["command"])[:300]
+        content = str(tool_input["command"])
     elif "file_path" in tool_input:
         content = str(tool_input["file_path"])
     elif "path" in tool_input:
@@ -36,15 +36,15 @@ def fingerprint(tool_input: dict) -> str:
     elif "pattern" in tool_input:
         content = str(tool_input["pattern"])
     else:
-        content = json.dumps(tool_input, sort_keys=True)[:300]
-    return hashlib.md5(content.encode()).hexdigest()[:10]
+        content = json.dumps(tool_input, sort_keys=True)
+    return hashlib.sha256(content.encode()).hexdigest()[:16]
 
 
 def log_path(session_id: str) -> str:
     return os.path.join(tempfile.gettempdir(), f".cls-{session_id[:16]}.log")
 
 
-def read_window(path: str, window: int) -> list[tuple]:
+def read_window(path: str, window: int) -> list:
     if not os.path.exists(path):
         return []
     cutoff = time.time() - window
@@ -106,7 +106,6 @@ def main():
     identical = [c for c in read_window(lp, IDENTICAL_WINDOW) if c[1] == tool and c[2] == fp]
     thrash    = [c for c in read_window(lp, THRASH_WINDOW)    if c[1] == tool]
 
-    # Record before potentially blocking so counter is accurate on retry
     append(lp, tool, fp)
 
     if len(identical) >= IDENTICAL_LIMIT:

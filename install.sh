@@ -11,32 +11,37 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOOK_SRC="$SCRIPT_DIR/hooks/loop-sentinel.py"
 HOOK_DST="$HOOK_DIR/loop-sentinel.py"
 
-echo "Loop Sentinel — installing..."
+echo "Loop Sentinel: installing..."
 
-# Create hooks directory
 mkdir -p "$HOOK_DIR"
 
-# Copy hook script
+# Back up existing settings.json before mutating
+if [ -f "$SETTINGS" ]; then
+  cp "$SETTINGS" "$SETTINGS.bak.$(date +%Y%m%d%H%M%S)" 2>/dev/null || true
+fi
+
 cp "$HOOK_SRC" "$HOOK_DST"
 chmod +x "$HOOK_DST"
 
-# Wire into settings.json using Python (handles existing hooks cleanly)
 python3 - <<'PYEOF'
 import json, os, sys
 
 settings_path = os.path.expanduser("~/.claude/settings.json")
 hook_cmd = "python3 " + os.path.expanduser("~/.claude/hooks/loop-sentinel.py")
 
+settings = {}
 if os.path.exists(settings_path):
-    with open(settings_path) as f:
-        settings = json.load(f)
-else:
-    settings = {}
+    try:
+        with open(settings_path) as f:
+            settings = json.load(f)
+    except json.JSONDecodeError:
+        print(f"  WARNING: {settings_path} is not valid JSON.")
+        print("  Refusing to overwrite. Fix the file by hand or remove it, then rerun install.")
+        sys.exit(1)
 
 hooks = settings.setdefault("hooks", {})
 pre = hooks.setdefault("PreToolUse", [])
 
-# Check if already installed
 for entry in pre:
     for h in entry.get("hooks", []):
         if "loop-sentinel" in h.get("command", ""):
@@ -57,8 +62,11 @@ PYEOF
 echo ""
 echo "Done. Loop Sentinel is active."
 echo ""
+echo "Verify install:"
+echo "  cat ~/.claude/settings.json"
+echo ""
 echo "Thresholds (edit hooks/loop-sentinel.py to adjust):"
-echo "  Identical loop: 5 calls with same args in 60s  → blocked"
-echo "  Thrash loop:    15 calls any args in 120s       → blocked"
+echo "  Identical loop: 5 calls with same args in 60s  blocked"
+echo "  Thrash loop:    15 calls any args in 120s      blocked"
 echo ""
 echo "To uninstall: bash uninstall.sh"
