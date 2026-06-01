@@ -4,7 +4,7 @@
 
 A tiny Claude Code hook that catches runaway tool-call loops before they keep burning tokens.
 
-After the threads about [$6K overnight burns](https://github.com/anthropics/claude-code/issues/4277) and 62M tokens in 24h, this is a local circuit breaker for one of the dumbest ways to waste tokens: repeated agent loops.
+There are open issues asking Anthropic to ship this upstream ([#12768 Thrashing Detection and Auto-Intervention](https://github.com/anthropics/claude-code/issues/12768), [#13996 Kill switch for runaway Task agents](https://github.com/anthropics/claude-code/issues/13996)). Until that lands, this is a local circuit breaker for one of the dumbest ways to waste tokens: repeated agent loops.
 
 ## What it does
 
