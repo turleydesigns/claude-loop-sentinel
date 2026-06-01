@@ -1,5 +1,7 @@
 # Loop Sentinel
 
+![Loop Sentinel: stops runaway tool loops before they cost you](docs/hero.png)
+
 A tiny Claude Code hook that catches runaway tool-call loops before they keep burning tokens.
 
 After the threads about [$6K overnight burns](https://github.com/anthropics/claude-code/issues/4277) and 62M tokens in 24h, this is a local circuit breaker for one of the dumbest ways to waste tokens: repeated agent loops.
